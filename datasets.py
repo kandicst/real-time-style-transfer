@@ -1,9 +1,13 @@
+from collections import deque
+
 from os import listdir
 from os.path import isfile, join, splitext
 
 from PIL import Image
 import numpy as np
 from torch.utils.data import Dataset
+from torchvision import transforms as tf
+from torch import Tensor
 
 from typing import Optional, Callable
 
@@ -12,70 +16,69 @@ IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tif
 
 class MyDataset(Dataset):
 
-    def __init__(self, root_dir: str, transforms: Optional[Callable], img_limit: Optional[int]):
+    def __init__(self, root_dir: str, transform: Optional[Callable], img_limit: Optional[int]):
         super(MyDataset, self).__init__()
         self.root_dir = root_dir
-        self.transforms = transforms
+        if transform is None:
+            self.transform = tf.Compose([tf.ToTensor()])
+        else:
+            self.transform = transform
 
         # parse all images from root_dir
-        self.img_names = []
+        self.img_names = deque()
         for f in listdir(root_dir):
-            if isfile(join(root_dir, f)) and splitext(f)[-1] in IMG_EXTENSIONS:
-                self.img_names.append(f)
             if len(self.img_names) == img_limit:
                 break
+            if isfile(join(root_dir, f)) and splitext(f)[-1] in IMG_EXTENSIONS:
+                self.img_names.append(f)
 
-    def __getitem__(self, index: int):
+    def __getitem__(self, index: int) -> Tensor:
         name = self.img_names[index]
-        if self.transforms:
-            return self.transforms(self.load_image(join(self.root_dir, name)))
+        return self.transform(self.load_image(join(self.root_dir, name)))
 
-        return self.load_image(join(self.root_dir, name))
-
-    def load_image(self, path):
+    def load_image(self, path) -> Image:
         img = Image.open(path)
         if len(np.array(img).shape) == 2:
             img = img.convert('RGB')
         return img
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.img_names)
 
 
-class CacheDataset(MyDataset):
+class CachedDataset(MyDataset):
 
-    def __init__(self, root_dir: str, transforms, img_limit: Optional[int], max_cache_size: int):
-        super(CacheDataset, self).__init__(root_dir, transforms, img_limit)
+    def __init__(self, root_dir: str, transform, img_limit: Optional[int], max_cache_size: int):
+        super(CachedDataset, self).__init__(root_dir, transform, img_limit)
 
         self.max_cache_size = self.cache_available = max_cache_size
         self.cache = dict()
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> Tensor:
         name = self.img_names[index]
 
         if name in self.cache:
-            return self.transforms(self.cache[name]) if self.transforms else self.cache[name]
+            return self.transform(self.cache[name])
 
-        # add to cache
+        # add to cache if there's space
         if self.cache_available > 0:
             self.cache[name] = self.load_image(join(self.root_dir, name))
             self.cache_available -= 1
-            return self.cache[name]
+            return self.transform(self.cache[name])
 
         # cache is full
-        return super(CacheDataset, self).__getitem__(index)
+        return super(CachedDataset, self).__getitem__(index)
 
 
 if __name__ == '__main__':
-    ds = MyDataset(root_dir='data/wikiart', transforms=None, img_limit=10000)
+    ds = MyDataset(root_dir='data/wikiart', transform=None, img_limit=100)
+    print(ds[1])
 
-    from torchvision import transforms
-
-    transform = transforms.Compose([
-        transforms.Resize(256),  # rescale
-        transforms.ToTensor(),  # convert to [0, 1] range
+    transform = tf.Compose([
+        tf.Resize(256),  # rescale
+        tf.ToTensor(),  # convert to [0, 1] range
     ])
 
-    cache_ds = CacheDataset(root_dir='data/wikiart', transforms=transform, img_limit=500, max_cache_size=1)
+    cache_ds = CachedDataset(root_dir='data/wikiart', transform=transform, img_limit=500, max_cache_size=1)
     print(cache_ds[0])
     print(cache_ds[42])

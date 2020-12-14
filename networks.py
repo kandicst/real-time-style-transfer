@@ -3,7 +3,7 @@ from torch import nn
 from torch import Tensor
 from torchvision import models
 
-from typing import Tuple, List, Optional, Union
+from typing import Tuple, List, Optional
 
 
 class AdaIN(nn.Module):
