@@ -97,24 +97,16 @@ class Decoder(nn.Module):
 
 if __name__ == '__main__':
     ada = AdaIN(3)
-    # c = torch.randn((2, 3, 4, 4))
-    # s = torch.randn((2, 3, 4, 4))
-    # ada(c, s)
-
     encoder = EncoderVGG()
-    xx = torch.randn((2, 3, 64, 64))
-    oot = encoder(xx)
 
     model = Decoder(encoder)
-    print(sum(dict((p.data_ptr(), p.numel()) for p in model.parameters()).values()))
 
-    test_c = torch.randn((1, 3, 128, 128))
-    test_s = torch.randn((1, 3, 128, 128))
+    test_c = torch.randn((1, 3, 256, 256))
+    test_s = torch.randn((1, 3, 256, 256))
 
     enc_c = encoder(test_c)[-1]
     enc_s = encoder(test_s)[-1]
 
     test_ada = ada(enc_c, enc_s)
-    print(test_ada.shape)
     dec_out = model(test_ada)
     print(dec_out.shape)
