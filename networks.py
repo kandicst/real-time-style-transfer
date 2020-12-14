@@ -16,15 +16,15 @@ class AdaIN(nn.Module):
         assert len(content.size()) == len(style.size()) == 4  # make sure its NCHW format
         assert content.size() == style.size()  # make sure the shapes match
 
-        content_mean, content_std = self.get_mean_and_std(content)
-        style_mean, style_std = self.get_mean_and_std(style)
+        content_mean, content_std = self.get_instance_statistics(content)
+        style_mean, style_std = self.get_instance_statistics(style)
 
         # Equation (8)
         out = (content - content_mean) / content_std
         out = out * style_std + style_mean
         return out
 
-    def get_mean_and_std(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+    def get_instance_statistics(self, x: Tensor) -> Tuple[Tensor, Tensor]:
         N, C, H, W = x.size()
         instance = x.view(N, C, -1)  # flatten HW
         mean = instance.mean(2).view(N, C, 1, 1)
@@ -61,8 +61,6 @@ class EncoderVGG(nn.Module):
             for param in net.parameters():
                 param.requires_grad = False
 
-        self.test = nn.Sequential(*modules)
-
     def forward(self, x: Tensor) -> List[Optional[Tensor]]:
         feature_maps: List[Optional[Tensor]] = [None] * len(self.subnets)
 
@@ -86,7 +84,7 @@ class Decoder(nn.Module):
                 layer: nn.Module = encoder.subnets[i][j]
                 if isinstance(layer, nn.Conv2d):
                     in_channels, out_channels = layer.out_channels, layer.in_channels
-                    modules.append(nn.Conv2d(in_channels, out_channels, 3, padding_mode='reflect'))
+                    modules.append(nn.Conv2d(in_channels, out_channels, 3, padding=1, padding_mode='reflect'))
                     modules.append(nn.ReLU(inplace=True))
                 elif isinstance(layer, nn.MaxPool2d):
                     modules.append(nn.Upsample(scale_factor=2, mode='nearest'))
@@ -99,13 +97,24 @@ class Decoder(nn.Module):
 
 if __name__ == '__main__':
     ada = AdaIN(3)
-    c = torch.randn((2, 3, 4, 4))
-    s = torch.randn((2, 3, 4, 4))
-    ada(c, s)
+    # c = torch.randn((2, 3, 4, 4))
+    # s = torch.randn((2, 3, 4, 4))
+    # ada(c, s)
 
     encoder = EncoderVGG()
     xx = torch.randn((2, 3, 64, 64))
-    out = encoder(xx)
+    oot = encoder(xx)
 
     model = Decoder(encoder)
     print(sum(dict((p.data_ptr(), p.numel()) for p in model.parameters()).values()))
+
+    test_c = torch.randn((1, 3, 128, 128))
+    test_s = torch.randn((1, 3, 128, 128))
+
+    enc_c = encoder(test_c)[-1]
+    enc_s = encoder(test_s)[-1]
+
+    test_ada = ada(enc_c, enc_s)
+    print(test_ada.shape)
+    dec_out = model(test_ada)
+    print(dec_out.shape)
