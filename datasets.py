@@ -5,6 +5,8 @@ from os.path import isfile, join, splitext
 
 from PIL import Image
 import numpy as np
+
+import torch
 from torch.utils.data import Dataset
 from torchvision import transforms as tf
 from torch import Tensor
@@ -16,7 +18,7 @@ IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tif
 
 class MyDataset(Dataset):
 
-    def __init__(self, root_dir: str, transform: Optional[Callable], img_limit: Optional[int]):
+    def __init__(self, root_dir: str, transform: Optional[Callable] = None, img_limit: Optional[int] = None):
         super(MyDataset, self).__init__()
         self.root_dir = root_dir
         if transform is None:
@@ -34,7 +36,8 @@ class MyDataset(Dataset):
 
     def __getitem__(self, index: int) -> Tensor:
         name = self.img_names[index]
-        return self.transform(self.load_image(join(self.root_dir, name)))
+        x = self.transform(self.load_image(join(self.root_dir, name)))
+        return x
 
     def load_image(self, path) -> Image:
         img = Image.open(path)
@@ -42,32 +45,44 @@ class MyDataset(Dataset):
             img = img.convert('RGB')
         return img
 
+    def name(self) -> str:
+        return "My Datset"
+
     def __len__(self) -> int:
         return len(self.img_names)
 
 
 class CachedDataset(MyDataset):
 
-    def __init__(self, root_dir: str, transform, img_limit: Optional[int], max_cache_size: int):
+    def __init__(self, root_dir: str, transform, img_limit: Optional[int], max_cache_size: int,
+                 use_cache: bool = False):
         super(CachedDataset, self).__init__(root_dir, transform, img_limit)
 
+        self.use_cache = use_cache
         self.max_cache_size = self.cache_available = max_cache_size
-        self.cache = dict()
+        self.cache = []
 
     def __getitem__(self, index) -> Tensor:
         name = self.img_names[index]
+        if not self.use_cache:
+            img = self.load_image(join(self.root_dir, name))
+            if self.cache_available > 0:
+                self.cache.append(img)
+            return self.transform(img)
+        else:
+            if index > len(self.img_names) - 1:
+                return self.transform(self.load_image(join(self.root_dir, name)))
+            return self.transform(self.cache[index])
 
-        if name in self.cache:
-            return self.transform(self.cache[name])
+    def set_use_cache(self, use_cache):
+        if use_cache:
+            self.cache = torch.stack(tuple(self.cache))
+        else:
+            self.cache = []
+        self.use_cache = use_cache
 
-        # add to cache if there's space
-        if self.cache_available > 0:
-            self.cache[name] = self.load_image(join(self.root_dir, name))
-            self.cache_available -= 1
-            return self.transform(self.cache[name])
-
-        # cache is full
-        return super(CachedDataset, self).__getitem__(index)
+    def name(self) -> str:
+        return "Cached Datset"
 
 
 if __name__ == '__main__':
