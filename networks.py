@@ -14,7 +14,7 @@ class AdaIN(nn.Module):
 
     def forward(self, content: Tensor, style: Tensor) -> Tensor:
         assert len(content.size()) == len(style.size()) == 4  # make sure its NCHW format
-        assert content.size() == style.size()  # make sure the shapes match
+        # assert content.size() == style.size()  # make sure the shapes match
 
         content_mean, content_std = self.get_instance_statistics(content)
         style_mean, style_std = self.get_instance_statistics(style)
@@ -110,3 +110,7 @@ if __name__ == '__main__':
     test_ada = ada(enc_c, enc_s)
     dec_out = model(test_ada)
     print(dec_out.shape)
+
+    dec_enc_out = encoder(dec_out)
+    print(dec_enc_out[-1].shape)
+    print(test_ada.shape)

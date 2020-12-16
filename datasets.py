@@ -67,12 +67,15 @@ class CachedDataset(MyDataset):
         if not self.use_cache:
             img = self.load_image(join(self.root_dir, name))
             if self.cache_available > 0:
-                self.cache.append(img)
-            return self.transform(img)
+                # self.cache.append(img)
+                self.cache.append(self.transform(img))
+            # return self.transform(img)
+            return self.cache[-1]
         else:
             if index > len(self.img_names) - 1:
                 return self.transform(self.load_image(join(self.root_dir, name)))
-            return self.transform(self.cache[index])
+            # return self.transform(self.cache[index])
+            return self.cache[index]
 
     def set_use_cache(self, use_cache):
         if use_cache:

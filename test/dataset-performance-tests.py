@@ -9,14 +9,14 @@ def run_performance_test(dataset: MyDataset, batch_size: int, epoch_num: int):
 
     print(f'Running for {dataset.name()}:')
     if isinstance(dataset, CachedDataset):
+        # first epoch to load the data
         tic = perf_counter()
-        # do first epoch to load the data
         for batch in loader:
             pass
         print(f'First epoch with caching the data took {perf_counter() - tic} seconds')
 
         dataset.use_cache = True
-        # loader.num_workers = num_workers
+        # loader.num_workers = 1
         epoch_num -= 1
 
     ep1 = perf_counter()
@@ -39,5 +39,5 @@ if __name__ == '__main__':
     slow_dataset = MyDataset('../data/wikiart', transform=transform, img_limit=1000)
     fast_dataset = CachedDataset('../data/wikiart', transform=transform, img_limit=1000, max_cache_size=1000)
 
-    run_performance_test(slow_dataset, batch_size=8, epoch_num=2)  # 25s per epoch for 1k imgs
+    # run_performance_test(slow_dataset, batch_size=8, epoch_num=2)  # 25s per epoch for 1k images
     run_performance_test(fast_dataset, batch_size=8, epoch_num=2)  # 10s per epoch after loading the data
