@@ -32,6 +32,11 @@ class MyDataset(Dataset):
             if len(self.img_names) == img_limit:
                 break
             if isfile(join(root_dir, f)) and splitext(f)[-1] in IMG_EXTENSIONS:
+                # x = tf.ToTensor()(self.load_image(join(root_dir,f)))
+                # if x.shape[0] == 4:
+                #     print(join(root_dir, f))
+                # if len(self.img_names) % 100 == 0:
+                #     print(len(self.img_names))
                 self.img_names.append(f)
 
     def __getitem__(self, index: int) -> Tensor:
