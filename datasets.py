@@ -44,6 +44,10 @@ class MyDataset(Dataset):
         x = self.transform(self.load_image(join(self.root_dir, name)))
         return x
 
+    def get_no_transform(self, index: int) -> Tensor:
+        name = self.img_names[index]
+        return tf.ToTensor()(self.load_image(join(self.root_dir, name)))
+
     def load_image(self, path) -> Image:
         img = Image.open(path)
         if len(np.array(img).shape) == 2:

@@ -33,10 +33,5 @@ def calculate_style_loss(enc_out: List[Tensor], dec_out: List[Tensor], loss_fn: 
         s_mean, s_std = get_instance_statistics(s)
 
         loss += loss_fn(g_mean, s_mean) + loss_fn(g_std, s_std)
-        # # calc mean difference
-        # loss += loss_obj(g_t.mean(2).view(N, C, 1, 1), s.mean(2).view(N, C, 1, 1))
-        #
-        # # calc variance difference
-        # loss += loss_obj(g_t.var(2).view(N, C, 1, 1), s.var(2).view(N, C, 1, 1))
 
     return loss
