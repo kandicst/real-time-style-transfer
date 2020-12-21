@@ -4,6 +4,10 @@ from os import listdir
 from os.path import isfile, join, splitext
 
 from PIL import Image
+from PIL import ImageFile
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
 import numpy as np
 
 import torch
