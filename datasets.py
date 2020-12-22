@@ -12,7 +12,7 @@ import numpy as np
 
 import torch
 from torch.utils.data import Dataset
-from torchvision import transforms as tf
+from torchvision import transforms as T
 from torch import Tensor
 
 from typing import Optional, Callable
@@ -26,7 +26,7 @@ class MyDataset(Dataset):
         super(MyDataset, self).__init__()
         self.root_dir = root_dir
         if transform is None:
-            self.transform = tf.Compose([tf.ToTensor()])
+            self.transform = T.Compose([T.ToTensor()])
         else:
             self.transform = transform
 
@@ -36,7 +36,7 @@ class MyDataset(Dataset):
             if len(self.img_names) == img_limit:
                 break
             if isfile(join(root_dir, f)) and splitext(f)[-1] in IMG_EXTENSIONS:
-                # x = tf.ToTensor()(self.load_image(join(root_dir,f)))
+                # x = T.ToTensor()(self.load_image(join(root_dir,f)))
                 # if x.shape[0] == 4:
                 #     print(join(root_dir, f))
                 # if len(self.img_names) % 100 == 0:
@@ -50,7 +50,7 @@ class MyDataset(Dataset):
 
     def get_no_transform(self, index: int) -> Tensor:
         name = self.img_names[index]
-        return tf.ToTensor()(self.load_image(join(self.root_dir, name)))
+        return T.ToTensor()(self.load_image(join(self.root_dir, name)))
 
     def load_image(self, path) -> Image:
         img = Image.open(path)
@@ -59,7 +59,7 @@ class MyDataset(Dataset):
         return img
 
     def name(self) -> str:
-        return "My Datset"
+        return "My Dataset"
 
     def __len__(self) -> int:
         return len(self.img_names)
@@ -80,15 +80,12 @@ class CachedDataset(MyDataset):
         if not self.use_cache:
             img = self.load_image(join(self.root_dir, name))
             if self.cache_available > 0:
-                # self.cache.append(img)
-                self.cache.append(self.transform(img))
-            # return self.transform(img)
-            return self.cache[-1]
+                self.cache.append(img)
+            return self.transform(self.cache[-1])
         else:
             if index > len(self.img_names) - 1:
                 return self.transform(self.load_image(join(self.root_dir, name)))
-            # return self.transform(self.cache[index])
-            return self.cache[index]
+            return self.transform(self.cache[index])
 
     def set_use_cache(self, use_cache):
         if use_cache:
@@ -98,17 +95,14 @@ class CachedDataset(MyDataset):
         self.use_cache = use_cache
 
     def name(self) -> str:
-        return "Cached Datset"
+        return "Cached Dataset"
 
 
 if __name__ == '__main__':
     ds = MyDataset(root_dir='data/wikiart', transform=None, img_limit=100)
     print(ds[1])
 
-    transform = tf.Compose([
-        tf.Resize(256),  # rescale
-        tf.ToTensor(),  # convert to [0, 1] range
-    ])
+    transform = T.Compose([T.Resize(256), T.ToTensor()])
 
     cache_ds = CachedDataset(root_dir='data/wikiart', transform=transform, img_limit=500, max_cache_size=1)
     print(cache_ds[0])

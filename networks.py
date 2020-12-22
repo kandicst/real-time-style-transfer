@@ -1,12 +1,11 @@
-import torch
 from torch import nn
 from torch import Tensor
-from torchvision import models
 
 from typing import Tuple, List, Optional
 
-from test_network import get_net
 from vgg import get_vgg_mine
+
+from loss import get_instance_statistics
 
 
 class AdaIN(nn.Module):
@@ -17,22 +16,15 @@ class AdaIN(nn.Module):
 
     def forward(self, content: Tensor, style: Tensor) -> Tensor:
         assert len(content.size()) == len(style.size()) == 4  # make sure its NCHW format
-        # assert content.size() == style.size()  # make sure the shapes match
+        # assert list(content.size()) == list(style.size())   # make sure the shapes match
 
-        content_mean, content_std = self.get_instance_statistics(content)
-        style_mean, style_std = self.get_instance_statistics(style)
+        content_mean, content_std = get_instance_statistics(content)
+        style_mean, style_std = get_instance_statistics(style)
 
         # Equation (8)
         out = (content - content_mean) / content_std
         out = out * style_std + style_mean
         return out
-
-    def get_instance_statistics(self, x: Tensor) -> Tuple[Tensor, Tensor]:
-        N, C, H, W = x.size()
-        instance = x.view(N, C, -1)  # flatten HW
-        mean = instance.mean(2).view(N, C, 1, 1)
-        std = torch.sqrt(instance.var(2) + self.eps).view(N, C, 1, 1)
-        return mean, std
 
 
 class EncoderVGG(nn.Module):
@@ -43,52 +35,11 @@ class EncoderVGG(nn.Module):
         if loss_layers is None:
             loss_layers = [1, 6, 11, 20]  # relu1_1, relu2_1, relu3_1, relu4_1
 
-        # load pretrained vgg and remove unwanted layers
-        vgg19 = models.vgg19(pretrained=True)
-        modules = list(vgg19.children())[0][:loss_layers[-1] + 1]
-
-        # create sub nets for each output we need to calculate the loss
-        self.subnets: List[Optional[nn.Sequential]] = [None] * len(loss_layers)
-        for i in range(len(loss_layers)):
-            start = 0 if i == 0 else loss_layers[i - 1] + 1
-            end = loss_layers[i] + 1
-            self.subnets[i] = nn.Sequential(*modules[start: end])
-
-        for net in self.subnets:
-            # set padding mode of conv layers to reflect
-            for feature in net:
-                if isinstance(feature, nn.Conv2d):
-                    feature.padding_mode = 'reflect'
-
-            # freeze weights in all layers
-            for param in net.parameters():
-                param.requires_grad = False
-
-    def forward(self, x: Tensor) -> List[Optional[Tensor]]:
-        feature_maps: List[Optional[Tensor]] = [None] * len(self.subnets)
-
-        inp = x
-        for i, net in enumerate(self.subnets):
-            inp = net(inp)
-            feature_maps[i] = inp
-
-        return feature_maps
-
-
-class EncoderV2(nn.Module):
-
-    def __init__(self, loss_layers: List[int] = None):
-        super(EncoderV2, self).__init__()
-
-        if loss_layers is None:
-            # loss_layers = [2, 7, 12, 21]  # relu1_1, relu2_1, relu3_1, relu4_1
-            loss_layers = [1, 6, 11, 20]  # relu1_1, relu2_1, relu3_1, relu4_1
-
         # add 1 to every idx because of first layer which prepossesses the image
         loss_layers = [x + 1 for x in loss_layers]
 
         # load pretrained vgg and remove unwanted layers
-        vgg19 = get_vgg_mine()
+        vgg19 = get_vgg()
         modules = list(vgg19.children())[:loss_layers[-1] + 1]
 
         # create sub nets for each output we need to calculate the loss
@@ -119,7 +70,7 @@ class Decoder(nn.Module):
     def __init__(self, encoder: nn.Module, ignore_last=2):
         super(Decoder, self).__init__()
 
-        # iterate backwards through encoder modules to create a mirror decoder
+        # iterate backwards through encoder modules to create a mirror-like decoder
         modules = []
         for i in range(len(encoder.subnets) - 1, -1, -1):
             for j in range(len(encoder.subnets[i]) - 1, -1, -1):
@@ -131,7 +82,7 @@ class Decoder(nn.Module):
                 elif isinstance(layer, nn.MaxPool2d):
                     modules.append(nn.Upsample(scale_factor=2, mode='nearest'))
 
-        self.features = nn.Sequential(*modules[:-2])
+        self.features = nn.Sequential(*modules[:-ignore_last])
         x = 'skloni -1'
 
     def forward(self, x: Tensor) -> Tensor:
@@ -144,27 +95,10 @@ def test_difference(t1, t2):
     print(f'Difference is {(t1 - t2).abs().max()}')
 
 
-def my_frwrd():
-    pass
-
-
-def test_nets():
-    their_net = get_net()
-
-    my_enc = EncoderV2()
-    tens = torch.randn((1, 3, 64, 64))
-    tens_perm = tens[:, [2, 1, 0], :, :]
-    out1 = my_enc(tens)
-    out2 = their_net.encode_with_layers(tens)[1:]
-    for x, y in zip(out1, out2):
-        test_difference(x, y)
-
-
 if __name__ == '__main__':
     # ada = AdaIN()
-    # # encoder = EncoderVGG()
-    encoder = EncoderV2()
-    #
+    encoder = EncoderVGG()
+
     model = Decoder(encoder)
     #
     # test_c = torch.randn((1, 3, 256, 256))
@@ -180,5 +114,3 @@ if __name__ == '__main__':
     # dec_enc_out = encoder(dec_out)
     # print(dec_enc_out[-1].shape)
     # print(test_ada.shape)
-
-    test_nets()
