@@ -3,7 +3,7 @@ from torch import Tensor
 
 from typing import Tuple, List, Optional
 
-from vgg import get_vgg_mine
+from vgg import get_vgg
 
 from loss import get_instance_statistics
 
