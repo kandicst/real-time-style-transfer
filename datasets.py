@@ -6,8 +6,6 @@ from os.path import isfile, join, splitext
 from PIL import Image
 from PIL import ImageFile
 
-ImageFile.LOAD_TRUNCATED_IMAGES = True
-
 import numpy as np
 
 import torch
@@ -16,6 +14,9 @@ from torchvision import transforms as T
 from torch import Tensor
 
 from typing import Optional, Callable
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+Image.MAX_IMAGE_PIXELS = None
 
 IMG_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm', '.tif', '.tiff', '.webp')
 
@@ -36,11 +37,6 @@ class MyDataset(Dataset):
             if len(self.img_names) == img_limit:
                 break
             if isfile(join(root_dir, f)) and splitext(f)[-1] in IMG_EXTENSIONS:
-                # x = T.ToTensor()(self.load_image(join(root_dir,f)))
-                # if x.shape[0] == 4:
-                #     print(join(root_dir, f))
-                # if len(self.img_names) % 100 == 0:
-                #     print(len(self.img_names))
                 self.img_names.append(f)
 
     def __getitem__(self, index: int) -> Tensor:
@@ -54,8 +50,9 @@ class MyDataset(Dataset):
 
     def load_image(self, path) -> Image:
         img = Image.open(path)
-        if len(np.array(img).shape) == 2:
-            img = img.convert('RGB')
+        shape = np.array(img).shape
+        if shape[-1] != 3 or len(shape) != 3:
+            return img.convert('RGB')
         return img
 
     def name(self) -> str:
