@@ -86,3 +86,7 @@ def clean_img_folder(root_dir):
                     print(f'Failed to remove {file_path}')
             if idx and idx % 500 == 0:
                 print(idx)
+
+
+if __name__ == '__main__':
+    load_image('')

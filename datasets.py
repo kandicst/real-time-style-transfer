@@ -51,8 +51,16 @@ class MyDataset(Dataset):
     def load_image(self, path) -> Image:
         img = Image.open(path)
         shape = np.array(img).shape
+
+        if not len(shape):
+            print(f'Random Numpy Exception Occured!\nPath {path}, shape {shape} \nImg{img}')
+            # return random image
+            arr = np.random.rand(512, 512, 3) * 255
+            return Image.fromarray(arr.astype('uint8'))
+
         if shape[-1] != 3 or len(shape) != 3:
             return img.convert('RGB')
+
         return img
 
     def name(self) -> str:
