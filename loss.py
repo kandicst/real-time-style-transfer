@@ -23,7 +23,6 @@ def calculate_content_loss(enc_out: Tensor, norm_out: Tensor, loss_fn: Callable)
 
 def calculate_style_loss(enc_out: List[Tensor], dec_out: List[Tensor], loss_fn: Callable) -> Tensor:
     assert len(enc_out) == len(dec_out)
-    # assert all([list(x.size()) == list(y.size()) for x, y in zip(enc_out, dec_out)])
 
     loss = torch.tensor([0.], device=enc_out[0].device)
     # Equation (13)

@@ -14,9 +14,19 @@ class AdaIN(nn.Module):
         super(AdaIN, self).__init__()
         self.eps = eps
 
-    def forward(self, content: Tensor, style: Tensor) -> Tensor:
+    # def forward(self, content: Tensor, style: Tensor) -> Tensor:
+    #     assert len(content.size()) == len(style.size()) == 4  # make sure its NCHW format
+    #
+    #     content_mean, content_std = get_instance_statistics(content)
+    #     style_mean, style_std = get_instance_statistics(style)
+    #
+    #     # Equation (8)
+    #     out = (content - content_mean) / content_std
+    #     out = out * style_std + style_mean
+    #     return out
+
+    def forward(self, content: Tensor, style: Tensor, alpha: float = 1.) -> Tensor:
         assert len(content.size()) == len(style.size()) == 4  # make sure its NCHW format
-        # assert list(content.size()) == list(style.size())   # make sure the shapes match
 
         content_mean, content_std = get_instance_statistics(content)
         style_mean, style_std = get_instance_statistics(style)
@@ -24,6 +34,9 @@ class AdaIN(nn.Module):
         # Equation (8)
         out = (content - content_mean) / content_std
         out = out * style_std + style_mean
+
+        # Equation (14) Content-style trade-off
+        out = (1. - alpha) * content + alpha * out
         return out
 
 
