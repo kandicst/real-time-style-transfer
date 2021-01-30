@@ -60,6 +60,19 @@ def set_axis_text(ax: Axes, text: str, size: int = 36):
     ax.text(0.5, -0.1, text, size=size, ha="center", transform=ax.transAxes)
 
 
+def show_style_and_content_img(content_img: Tensor, style_img: Tensor, inverse_transform: Callable, figsize=(7, 14)):
+    f, axarr = plt.subplots(1, 2, figsize=figsize)
+    axarr[0].axis('off')
+    axarr[1].axis('off')
+    axarr[0].set_title('Content Image')
+    axarr[1].set_title('Style Image')
+    cont_image_pil = inverse_transform(content_img.cpu())
+    axarr[0].imshow(cont_image_pil)
+    axarr[1].imshow(inverse_transform(style_img.cpu()).resize(cont_image_pil.size))
+
+    plt.tight_layout()
+
+
 def clean_img_folder(root_dir):
     for idx, f in enumerate(listdir(root_dir)):
         if isfile(join(root_dir, f)) and splitext(f)[-1] in IMG_EXTENSIONS:
