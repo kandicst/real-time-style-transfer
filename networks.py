@@ -14,17 +14,6 @@ class AdaIN(nn.Module):
         super(AdaIN, self).__init__()
         self.eps = eps
 
-    # def forward(self, content: Tensor, style: Tensor) -> Tensor:
-    #     assert len(content.size()) == len(style.size()) == 4  # make sure its NCHW format
-    #
-    #     content_mean, content_std = get_instance_statistics(content)
-    #     style_mean, style_std = get_instance_statistics(style)
-    #
-    #     # Equation (8)
-    #     out = (content - content_mean) / content_std
-    #     out = out * style_std + style_mean
-    #     return out
-
     def forward(self, content: Tensor, style: Tensor, alpha: float = 1.) -> Tensor:
         assert len(content.size()) == len(style.size()) == 4  # make sure its NCHW format
 
@@ -96,15 +85,12 @@ class Decoder(nn.Module):
                     modules.append(nn.Upsample(scale_factor=2, mode='nearest'))
 
         self.features = nn.Sequential(*modules[:-ignore_last])
-        x = 'skloni -1'
 
     def forward(self, x: Tensor) -> Tensor:
         return self.features(x)
 
 
 def test_difference(t1, t2):
-    x = t1.size()
-    y = t2.size()
     print(f'Difference is {(t1 - t2).abs().max()}')
 
 

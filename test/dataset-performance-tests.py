@@ -11,12 +11,11 @@ def run_performance_test(dataset: MyDataset, batch_size: int, epoch_num: int):
     if isinstance(dataset, CachedDataset):
         # first epoch to load the data
         tic = perf_counter()
-        for batch in loader:
+        for _ in loader:
             pass
         print(f'First epoch with caching the data took {perf_counter() - tic} seconds')
 
         dataset.use_cache = True
-        # loader.num_workers = 1
         epoch_num -= 1
 
     ep1 = perf_counter()
