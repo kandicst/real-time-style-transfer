@@ -32,21 +32,21 @@ def show_content_style_tradeoff_grid(content_img: Tensor, style_img: Tensor, fn:
                                      alpha_min: float = 0.,
                                      alpha_max: float = 1.,
                                      alpha_step: float = 0.25):
-    num_cols = math.ceil((alpha_max - alpha_min) / alpha_step) + 3
+    num_cols = math.floor((alpha_max - alpha_min) / alpha_step) + 3
     f, axarr = plt.subplots(1, num_cols, figsize=(50, 100))
 
     # set first and last column as images
-    set_axis_text(axarr[0], 'Content Image')
+    set_axis_text(axarr[0], 'Content Image', size=80)
     content_img_pil: Image = inverse_transform(content_img.cpu())
     axarr[0].imshow(content_img_pil)
 
-    set_axis_text(axarr[num_cols - 1], 'Style Image')
+    set_axis_text(axarr[num_cols - 1], 'Style Image', size=80)
     style_img_pil: Image = inverse_transform(style_img.cpu())
     style_img_pil = style_img_pil.resize(content_img_pil.size)
     axarr[num_cols - 1].imshow(style_img_pil)
 
     for i in range(1, num_cols - 1):
-        set_axis_text(axarr[i], f'\u03B1 = {alpha_min}')
+        set_axis_text(axarr[i], f'\u03B1 = {alpha_min}', size=80)
         axarr[i].imshow(fn(content_img, style_img, alpha_min))
         alpha_min += alpha_step
 
@@ -54,10 +54,40 @@ def show_content_style_tradeoff_grid(content_img: Tensor, style_img: Tensor, fn:
     plt.show()
     plt.figure()
 
+def multi_row_grid(content_img: Tensor, style_img: Tensor, fn: Callable, inverse_transform: Callable,
+                                     num_rows,
+                                     num_cols,
+                                     figsize=(50,40),
+                                     alpha_min: float = 0.25,
+                                     alpha_max: float = 1.,
+                                     alpha_step: float = 0.25):
+    num_img = math.floor((alpha_max - alpha_min) / alpha_step) + 3
+    f, axarr = plt.subplots(num_rows, num_cols, figsize=figsize)
+
+    # set first and last column as images
+    set_axis_text(axarr[0][0], 'Content Image', size=90)
+    content_img_pil: Image = inverse_transform(content_img.cpu())
+    axarr[0][0].imshow(content_img_pil)
+
+    set_axis_text(axarr[0][1], 'Style Image', size=90)
+    style_img_pil: Image = inverse_transform(style_img.cpu())
+    style_img_pil = style_img_pil.resize(content_img_pil.size)
+    axarr[0][1].imshow(style_img_pil)
+
+    for i in range(num_rows):
+        k = 2 if i == 0 else 0
+        for j in range(k, num_cols):
+            set_axis_text(axarr[i][j], f'\u03B1 = {alpha_min}', size=90)
+            axarr[i][j].imshow(fn(content_img, style_img, alpha_min))
+            alpha_min += alpha_step
+
+    plt.tight_layout()
+    plt.show()
+    plt.figure()
 
 def set_axis_text(ax: Axes, text: str, size: int = 36):
     ax.axis('off')
-    ax.text(0.5, -0.1, text, size=size, ha="center", transform=ax.transAxes)
+    ax.text(0.5, -0.15, text, size=size, ha="center", transform=ax.transAxes)
 
 
 def show_style_and_content_img(content_img: Tensor, style_img: Tensor, inverse_transform: Callable, figsize=(7, 14)):
