@@ -10,7 +10,7 @@ from matplotlib.axes import Axes
 from datasets import IMG_EXTENSIONS
 import matplotlib.pyplot as plt
 from torch import Tensor
-from typing import Callable, Tuple
+from typing import Callable, List
 
 Image.MAX_IMAGE_PIXELS = None
 
@@ -54,13 +54,14 @@ def show_content_style_tradeoff_grid(content_img: Tensor, style_img: Tensor, fn:
     plt.show()
     plt.figure()
 
+
 def multi_row_grid(content_img: Tensor, style_img: Tensor, fn: Callable, inverse_transform: Callable,
-                                     num_rows,
-                                     num_cols,
-                                     figsize=(50,40),
-                                     alpha_min: float = 0.25,
-                                     alpha_max: float = 1.,
-                                     alpha_step: float = 0.25):
+                   num_rows,
+                   num_cols,
+                   figsize=(50, 40),
+                   alpha_min: float = 0.25,
+                   alpha_max: float = 1.,
+                   alpha_step: float = 0.25):
     num_img = math.floor((alpha_max - alpha_min) / alpha_step) + 3
     f, axarr = plt.subplots(num_rows, num_cols, figsize=figsize)
 
@@ -85,6 +86,7 @@ def multi_row_grid(content_img: Tensor, style_img: Tensor, fn: Callable, inverse
     plt.show()
     plt.figure()
 
+
 def set_axis_text(ax: Axes, text: str, size: int = 36):
     ax.axis('off')
     ax.text(0.5, -0.15, text, size=size, ha="center", transform=ax.transAxes)
@@ -100,6 +102,18 @@ def show_style_and_content_img(content_img: Tensor, style_img: Tensor, inverse_t
     axarr[0].imshow(cont_image_pil)
     axarr[1].imshow(inverse_transform(style_img.cpu()).resize(cont_image_pil.size))
 
+    plt.tight_layout()
+
+
+def show_images_in_a_row(images: List[Tensor], inverse_transform: Callable):
+    f, axarr = plt.subplots(1, 3, figsize=(7, 14))
+    size = inverse_transform(images[0].cpu()).size
+    for i in range(len(images)):
+        axarr[i].axis('off')
+        if isinstance(images[i], Tensor):
+            axarr[i].imshow(inverse_transform(images[i].cpu()).resize(size))
+        else:
+            axarr[i].imshow(images[i].resize(size))
     plt.tight_layout()
 
 
