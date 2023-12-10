@@ -116,7 +116,6 @@ def show_images_in_a_row(images: List[Tensor], inverse_transform: Callable):
             axarr[i].imshow(images[i].resize(size))
     plt.tight_layout()
 
-
 def clean_img_folder(root_dir):
     for idx, f in enumerate(listdir(root_dir)):
         if isfile(join(root_dir, f)) and splitext(f)[-1] in IMG_EXTENSIONS:

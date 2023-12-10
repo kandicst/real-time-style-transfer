@@ -66,6 +66,23 @@ class EncoderVGG(nn.Module):
 
         return feature_maps
 
+    def forward_train(self, x: Tensor):
+        feature_maps: List[Optional[Tensor]] = [None] * len(self.subnets)
+
+        inp = x
+        for i, net in enumerate(self.subnets):
+            inp = net(inp)
+            feature_maps[i] = inp
+
+        return feature_maps
+    
+    def forward_test(self, x: Tensor) -> Tensor:
+        inp = x
+        for net in self.subnets:
+            inp = net(inp)
+        
+        return inp
+
 
 class Decoder(nn.Module):
 
